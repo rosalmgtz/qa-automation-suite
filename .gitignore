@@ -1,0 +1,10 @@
+__pycache__/
+*.xlsx
+*.html
+*.csv
+*.txt
+*.json
+resultados_*/
+token.json
+credentials.json
+client_secret_*.json
