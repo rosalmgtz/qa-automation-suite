@@ -8,6 +8,7 @@ from openpyxl.utils import get_column_letter
 from datetime import datetime
 import time
 import re
+import os
 
 # 🕒 Fecha actual segura
 fecha_actual = datetime.now().strftime("%Y-%m-%d")
@@ -53,9 +54,9 @@ def aplicar_estilos(ws):
 
 @pytest.fixture(scope="module")
 def driver():
-    print("🟢 Iniciando navegador stealth...")
-    # Headless desactivado para depurar
-    d = uc.Chrome(headless=False, use_subprocess=True)
+    headless = os.getenv("HEADLESS_MODE", "true").lower() == "true"
+    print(f"🟢 Iniciando navegador stealth (headless={headless})...")
+    d = uc.Chrome(headless=headless, use_subprocess=True)
     d.maximize_window()
     yield d
     try:
@@ -87,25 +88,21 @@ def test_busqueda_google(driver, query):
     except:
         pass
     try:
-        # Eliminar posibles overlays
         driver.execute_script(
             "document.querySelectorAll('iframe, dialog').forEach(e => e.remove())")
     except:
         pass
 
-    # Búsqueda
     caja = driver.find_element(By.NAME, "q")
     caja.send_keys(query)
     caja.send_keys(Keys.RETURN)
     time.sleep(3)
 
-    # Selectores alternativos
     bloques = driver.find_elements(By.CSS_SELECTOR, "div#search .tF2Cxc")
     if len(bloques) == 0:
         bloques = driver.find_elements(By.CSS_SELECTOR, "div.g")
     assert len(bloques) > 0, f"No se encontraron resultados para '{query}'"
 
-    # Crear hoja
     ws = wb.create_sheet(title=query[:31])
     ws.append(["Título", "Enlace"])
     count = 0
