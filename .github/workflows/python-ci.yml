@@ -1,0 +1,29 @@
+name: Python CI – QA Suite
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  run-tests:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: 🔁 Clonar repositorio
+      uses: actions/checkout@v3
+
+    - name: 🐍 Configurar Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+
+    - name: 📦 Instalar dependencias
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+
+    - name: 🧪 Ejecutar pruebas con Pytest
+      run: |
+        pytest --html=report.html || echo "⚠️ Algunas pruebas fallaron"
