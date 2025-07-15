@@ -60,4 +60,4 @@ pytest test_busquedas_google.py --html=report.html
 - `suite.py` gestiona el flujo completo: ejecución de pruebas, generación de reportes y subida a la nube
 - La bitácora técnica (`bitacora_QA.txt`) registra cada resultado con timestamp detallado
 
-🔧 Desarrollado y documentado por [Rosalba de la Merced Gutiérrez](https://github.com/rosalmgtz) – QA Automation Developer
+🔧 QA_Desarrollado y documentado por [Rosalba de la Merced Gutiérrez](https://github.com/rosalmgtz) – QA Automation Developer
