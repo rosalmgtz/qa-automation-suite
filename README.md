@@ -17,14 +17,14 @@ Este proyecto automatiza búsquedas en Google utilizando Selenium WebDriver y Py
 
 ## 🛠️ Tecnologías utilizadas:
 
-| Herramienta        | Versión / Uso                        |
-| ------------------ | ------------------------------------ |
-| Python             | 3.x                                  |
-| Selenium WebDriver | Control de navegador                 |
-| Pytest + HTML      | Generador de reportes de prueba      |
-| OpenPyXL           | Escritura y actualización de Excel   |
-| Google API Client  | Subida de archivos a Drive           |
-| ChromeDriver       | Ejecución sin detección automatizada |
+| Herramienta             | Propósito                             |
+| ----------------------- | ------------------------------------- |
+| Selenium WebDriver      | Automatización del navegador          |
+| undetected-chromedriver | Evasión de detección tipo CAPTCHA     |
+| Pytest + pytest-html    | Framework de pruebas + reportes HTML  |
+| OpenPyXL                | Lectura y escritura en archivos Excel |
+| Google API Client       | Subida a Drive con OAuth 2.0          |
+| GitHub Actions          | Integración continua (CI/CD)          |
 
 ## 📁 Estructura de archivos:
 
@@ -47,10 +47,18 @@ qa-automation-suite/
 - 📘 Actualización del README con estructura clara y nota de renombramiento
 - 🖼️ Inclusión de badge visual para resaltar cambio activo
 
+## 💻 Instalación del entorno:
+
+Este proyecto utiliza dos archivos para manejar dependencias:
+
+- `requirements.txt`: Paquetes esenciales para ejecución
+- `dev-requirements.txt`: Herramientas para desarrollo y testing
+
 ## 🧪 Ejecutar pruebas individuales:
 
 #```bash
 pytest test_busquedas_google.py --html=report.html
+pytest --cov=. --cov-report=html
 
 ## 📌 Notas técnicas:
 
