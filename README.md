@@ -69,4 +69,15 @@ pytest --cov=. --cov-report=html
 - `suite.py` gestiona el flujo completo: ejecución de pruebas, generación de reportes y subida a la nube
 - La bitácora técnica (`bitacora_QA.txt`) registra cada resultado con timestamp detallado
 
+## 📦 Versión estable
+
+La versión actual de la suite está disponible como [Release v1.2 – Suite QA lista para CI](https://github.com/rosalmgtz/qa-automation-suite/releases/tag/v1.2-ci-ready).
+
+Incluye:
+
+- Soporte para ejecución `headless` controlada desde GitHub Actions
+- Generación de reportes HTML y Excel automatizados
+- Sincronización con Google Drive
+- Scripts listos para CI/CD con Python y Selenium
+
 🔧 QA_Desarrollado y documentado por [Rosalba de la Merced Gutiérrez](https://github.com/rosalmgtz) – QA Automation Developer
