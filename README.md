@@ -49,7 +49,7 @@ qa-automation-suite/
 
 ## 🧪 Ejecutar pruebas individuales
 
-```bash
+#```bash
 pytest test_busquedas_google.py --html=report.html
 
 ## 📌 Notas técnicas
