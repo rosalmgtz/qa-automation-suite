@@ -1,6 +1,7 @@
 ![Made with Python](https://img.shields.io/badge/Made%20with-Python-blue)
 ![Google Drive API](https://img.shields.io/badge/Google%20Drive-API%20Integrated-green)
 ![suite.py Active](https://img.shields.io/badge/suite.py-active%20launcher-blue)
+![CI Status](https://img.shields.io/github/actions/workflow/status/rosalmgtz/qa-automation-suite/python-ci.yml?branch=main)
 
 # 🧪 QA Automation Suite – Selenium + Pytest + Google Drive:
 
