@@ -1,6 +1,6 @@
 # 📦 Dependencias esenciales para ejecutar la suite de automatización
 
-selenium==4.21.0                   # Automatización del navegador web
+selenium==4.21.0                   # Automatización del navegador web 
 undetected-chromedriver==3.5.5     # Evade bloqueos tipo CAPTCHA o detección de bots
 openpyxl==3.1.2                    # Lectura y escritura de archivos .xlsx
 google-api-python-client==2.126.0  # Interacción con APIs de Google
