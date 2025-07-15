@@ -1,0 +1,6 @@
+selenium
+pytest
+pytest-html
+openpyxl
+google-api-python-client
+oauth2client
