@@ -23,3 +23,13 @@ Este proyecto automatiza búsquedas en Google utilizando Selenium WebDriver y Py
 | ChromeDriver        | Ejecución sin detección automatizada         |
 
 ## 📁 Estructura de archivos
+
+
+
+
+## 🔧 Mejoras recientes
+
+- 🧠 Renombramiento del launcher principal a `suite.py` para mejorar semántica
+- 🧹 Limpieza del repositorio: eliminación de script obsoleto y fusión remota controlada
+- 📘 Actualización del README con estructura clara y nota de renombramiento
+- 🖼️ Inclusión de badge visual para resaltar cambio activo
