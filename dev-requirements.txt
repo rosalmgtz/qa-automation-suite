@@ -1,0 +1,6 @@
+# 🛠️ Paquetes para testing, reportes y métricas
+
+pytest==8.4.1                      # Framework de pruebas unitarias
+pytest-html==4.1.1                 # Reporte visual de resultados en HTML
+pytest-cov==4.1.0                  # Medición de cobertura de código
+pytest-mock==3.14.0                # Utilidades para mocking en tests
