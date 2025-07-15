@@ -23,7 +23,15 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install -r requirements.txt
+        ip install -r dev-requirements.txt
 
-    - name: 🧪 Ejecutar pruebas con Pytest
-      run: |
-        pytest --html=report.html || echo "⚠️ Algunas pruebas fallaron"
+
+- name: 🧪 Ejecutar pruebas con Pytest
+  run: |
+    pytest --html=report.html || echo "⚠️ Algunas pruebas fallaron"
+
+- name: 📤 Guardar reporte de pruebas
+  uses: actions/upload-artifact@v3
+  with:
+    name: pytest-report
+    path: report.html
