@@ -30,7 +30,7 @@ jobs:
           pytest --html=report.html || echo "⚠️ Algunas pruebas fallaron"
 
       - name: 📤 Guardar reporte de pruebas
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: pytest-report
           path: report.html
