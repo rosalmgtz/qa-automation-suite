@@ -1,6 +1,7 @@
-selenium
-pytest
-pytest-html
-openpyxl
-google-api-python-client
-oauth2client
+# 📦 Dependencias esenciales para ejecutar la suite de automatización
+
+selenium==4.21.0                   # Automatización del navegador web
+undetected-chromedriver==3.5.5     # Evade bloqueos tipo CAPTCHA o detección de bots
+openpyxl==3.1.2                    # Lectura y escritura de archivos .xlsx
+google-api-python-client==2.126.0  # Interacción con APIs de Google
+oauth2client==4.1.3                # Autenticación segura vía OAuth 2.0
