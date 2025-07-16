@@ -37,10 +37,10 @@ jobs:
 
       - name: 🧪 Ejecutar pruebas con Pytest
         run: |
-          pytest --html=report.html || echo "⚠️ Algunas pruebas fallaron"
+          pytest --html=Resultado_Pruebas/report.html || echo "⚠️ Algunas pruebas fallaron"
 
       - name: 📤 Guardar reporte de pruebas
         uses: actions/upload-artifact@v4
         with:
           name: pytest-report
-          path: report.html
+          path: Resultado_Pruebas/report.html
