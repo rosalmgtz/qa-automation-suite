@@ -2,6 +2,8 @@ import pytest
 import undetected_chromedriver as uc
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill, Alignment
 from openpyxl.utils import get_column_letter
@@ -12,18 +14,16 @@ import os
 
 # 🕒 Fecha actual segura
 fecha_actual = datetime.now().strftime("%Y-%m-%d")
-nombre_excel = f"busquedas_google_SABRINA_{fecha_actual}.xlsx"
+nombre_excel = f"busquedas_google_{fecha_actual}.xlsx"
 wb = Workbook()
 ws_resumen = wb.active
 ws_resumen.title = "Resumen"
 ws_resumen.append(["Término", "Título", "Enlace"])
 
-# 🔍 Términos de búsqueda
+# 🔍 Términos de búsqueda (reducido para eficiencia en CI)
 busquedas = [
     "automatización de pruebas con IA",
     "herramientas de testing con Selenium",
-    "aplicaciones móviles con React Native",
-    "mapas en apps Android",
     "evitar CAPTCHA en Selenium"
 ]
 
@@ -67,7 +67,7 @@ def driver():
 
 
 def pytest_configure(config):
-    config._metadata["Autor"] = "SABRINA"
+    config._metadata["Autor"] = "Rosalba"
     config._metadata["Proyecto"] = "Scraping con Selenium"
     config._metadata["Fecha"] = fecha_actual
     config._metadata["Ubicación"] = "Buenavista, México"
@@ -77,7 +77,10 @@ def pytest_configure(config):
 def test_busqueda_google(driver, query):
     print(f"\n🔎 Buscando: {query}")
     driver.get("https://www.google.com")
-    time.sleep(2)
+
+    WebDriverWait(driver, 5).until(
+        EC.presence_of_element_located((By.NAME, "q"))
+    )
 
     # Consentimiento / CAPTCHA bypass básico
     try:
@@ -96,7 +99,11 @@ def test_busqueda_google(driver, query):
     caja = driver.find_element(By.NAME, "q")
     caja.send_keys(query)
     caja.send_keys(Keys.RETURN)
-    time.sleep(3)
+
+    WebDriverWait(driver, 5).until(
+        EC.presence_of_element_located((By.ID, "search"))
+    )
+    time.sleep(2)
 
     bloques = driver.find_elements(By.CSS_SELECTOR, "div#search .tF2Cxc")
     if len(bloques) == 0:
