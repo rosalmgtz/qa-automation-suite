@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
-      HEADLESS_MODE: "false"
+      HEADLESS_MODE: "true"  # ← Activado para entorno CI
 
     steps:
       - name: 🔁 Clonar repositorio
@@ -22,7 +22,14 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: 📦 Instalar dependencias
+      - name: 📦 Instalar librerías para Chrome headless
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libnss3 libatk1.0-0 libatk-bridge2.0-0 libx11-xcb1 libgtk-3-0 \
+            libxcomposite1 libxdamage1 libxrandr2 libasound2 libxshmfence-dev
+
+      - name: 📦 Instalar dependencias del proyecto
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
