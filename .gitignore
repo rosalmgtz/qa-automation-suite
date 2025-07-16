@@ -1,10 +1,35 @@
+# 🧠 Python Cache & Virtual Environments
 __pycache__/
+venv/
+
+# 📊 Archivos generados por pruebas, scraping y reportes
+*.csv
 *.xlsx
 *.html
-*.csv
-*.txt
 *.json
+*.txt
 resultados_*/
+report.html
+
+# 🔐 Archivos sensibles (OAuth / credenciales)
 token.json
 credentials.json
 client_secret_*.json
+
+# 🖼️ Imágenes no permitidas en el repositorio
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.bmp
+*.webp
+*.svg
+
+# 🧰 Archivos de sistema y temporales
+*.log
+*.tmp
+.DS_Store
+*.bak
+
+# 🛠️ Configuración local de VSCode (opcional)
+.vscode/
