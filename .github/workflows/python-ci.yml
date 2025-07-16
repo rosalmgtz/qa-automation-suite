@@ -35,9 +35,20 @@ jobs:
           pip install -r requirements.txt
           pip install -r dev-requirements.txt
 
+      - name: 📁 Crear carpeta para reportes
+        run: mkdir -p Resultado_Pruebas
+
       - name: 🧪 Ejecutar pruebas con Pytest
         run: |
           pytest --html=Resultado_Pruebas/report.html || echo "⚠️ Algunas pruebas fallaron"
+
+      - name: ✅ Validar existencia de artefacto
+        run: |
+          if [ -f Resultado_Pruebas/report.html ] && [ $(stat -c%s Resultado_Pruebas/report.html) -gt 1000 ]; then
+            echo "🎉 Reporte generado correctamente ✔️"
+          else
+            echo "⚠️ Reporte no existe o es demasiado pequeño"
+          fi
 
       - name: 📤 Guardar reporte de pruebas
         uses: actions/upload-artifact@v4
