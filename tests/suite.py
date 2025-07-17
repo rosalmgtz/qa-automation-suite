@@ -6,13 +6,10 @@ import json
 import openpyxl
 from datetime import datetime
 from googleapiclient.discovery import build
-# Corregido: 'googleapapi.http' a 'googleapiclient.http'
 from googleapiclient.http import MediaFileUpload
 from google.auth.transport.requests import Request
 from google_auth_oauthlib.flow import InstalledAppFlow
 from google.oauth2.credentials import Credentials
-# Corregido: 'iimport subprocess' a 'import subprocess'
-# import subprocess # Esta línea estaba duplicada y mal escrita al inicio
 
 
 # Función auxiliar para construir la ruta a un archivo de credenciales
@@ -45,6 +42,8 @@ def get_credentials_path(filename):
 
 
 def asegurar_dependencias():
+    # Asegura que las dependencias estén instaladas.
+    # Estas deberían estar en requirements.txt para la CI.
     for pkg in ["pytest", "pytest-html", "google-api-python-client", "google-auth-oauthlib", "openpyxl"]:
         try:
             # Asegurarse de que el nombre del módulo sea el correcto para importación
@@ -177,11 +176,11 @@ def actualizar_resumen_excel():
 
     fecha = resumen.get("fecha", "desconocida")
     resultados = resumen.get("resultados", {})
-    # Corregido: 'results.keys()' a 'resultados.keys()'
     terminos = ", ".join(resultados.keys()) if resultados else "(sin datos)"
 
     # Rutas para los archivos de resultados que AHORA se generan directamente en reports/
     # Asume que pytest lo guarda en reports/
+    # Desde 'tests/', 'reports/' está en '../reports/'
     ruta_html = os.path.join("..", "reports", f"reporte_SABRINA_{fecha}.html")
     # El Excel ahora también se genera directamente en reports/
     ruta_excel_test_results = os.path.join(
@@ -235,6 +234,7 @@ def ejecutar_suite():
         "..", "reports", f"busquedas_google_SABRINA_{fecha}.xlsx")
 
     # Asegurarse de que la carpeta 'reports' exista antes de que pytest intente guardar
+    # Esta ruta es relativa al directorio donde se ejecuta suite.py (que es 'tests/')
     reports_dir = os.path.join(os.path.dirname(
         os.path.abspath(__file__)), '..', 'reports')
     os.makedirs(reports_dir, exist_ok=True)
