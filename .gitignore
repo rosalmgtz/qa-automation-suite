@@ -1,10 +1,56 @@
+# 🧠 Python Cache & Virtual Environments
 __pycache__/
+venv/
+
+# 📊 Archivos generados por pruebas, scraping y reportes
+*.csv
 *.xlsx
 *.html
-*.csv
 *.txt
-*.json
+
 resultados_*/
+report.html # Esto ignora report.html si está en la raíz, pero si está en reports/ ya lo cubre la línea de abajo
+
+# 🔐 Archivos sensibles (OAuth / credenciales) - IGNORAR SIEMPRE
 token.json
 credentials.json
 client_secret_*.json
+# Nuevas adiciones para mayor seguridad:
+api_key.json
+api_keys.json
+secrets.json
+*.key
+*.pem
+*.crt
+.env # Muy común para variables de entorno locales
+*.pickle
+
+# 🖼️ Carpetas y tipos de archivos de imágenes y reportes a IGNORAR
+imagenes/ # Ignora la carpeta completa "imagenes"
+reports/  # Ignora la carpeta completa "reports" (¡Nueva adición!)
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.bmp
+*.webp
+*.svg
+
+# 🧰 Archivos de sistema y temporales
+*.log
+*.tmp
+.DS_Store
+*.bak
+
+# 🛠️ Configuración local de VSCode (opcional)
+.vscode/
+
+# 📂 Permitir marcadores .keep en carpetas excluidas (para que Git suba carpetas vacías)
+!.github/.keep
+!reports/.keep # Asegúrate de tener esta línea si has creado un reports/.gitkeep
+!drivers/.keep
+!docs/.keep
+!tests/.keep
+!pages/.keep
+!utils/.keep
+!config/.gitkeep # Si config/ está vacía y tiene un .gitkeep

@@ -1,6 +1,17 @@
-# 🛠️ Paquetes para testing, reportes y métricas
+# 🧪 Herramientas de prueba avanzadas
+pytest-cov==4.1.0            # Reportes de cobertura de código
+pytest-mock==3.14.0          # Mocking para pruebas unitarias
 
-pytest==8.4.1                      # Framework de pruebas unitarias
-pytest-html==4.1.1                 # Reporte visual de resultados en HTML
-pytest-cov==4.1.0                  # Medición de cobertura de código
-pytest-mock==3.14.0                # Utilidades para mocking en tests
+# ⚙️ Entorno local y configuración
+python-dotenv==1.1.1         # Manejo de variables de entorno locales (.env)
+
+# 🎨 Estilo y limpieza de código
+flake8==7.0.0                # Linter para detectar errores de estilo
+black==24.4.0                # Formateador automático de código
+
+# 🐞 Depuración opcional
+coverage==7.9.2              # Análisis de cobertura más detallado (usado por pytest-cov)
+
+# 📦 Otros útiles para ambientes controlados
+requests==2.32.4             # Ideal para pruebas de APIs si las integras
+unittest-xml-reporting==3.2.0 # Reportes XML para integración CI

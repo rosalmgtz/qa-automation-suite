@@ -1,57 +1,64 @@
-name: Python CI – QA Suite
+# Nombre del workflow, aparecerá en la interfaz de GitHub Actions
+name: QA Automation Suite CI
 
+# --- Eventos que Disparan el Workflow ---
 on:
+  # Dispara el workflow cuando se hace un push a la rama 'infra/gitignore-y-ci-validado'
+  # ¡IMPORTANTE! Una vez que todo funcione, deberías cambiar esto a tus ramas principales
+  # como 'main' o 'develop' para que la CI se ejecute en los cambios importantes.
   push:
-    branches: [main]
+    branches:
+      - infra/gitignore-y-ci-validado # Tu rama actual de trabajo
+  
+  # Dispara el workflow cuando se abre o actualiza un Pull Request hacia las ramas especificadas
   pull_request:
-    branches: [main]
+    branches:
+      - infra/gitignore-y-ci-validado # Si usas PRs en esta rama de desarrollo/infra
+      - main # Para tus Pull Requests hacia la rama principal del proyecto
+      - develop # Si usas una rama de desarrollo para tus PRs
 
+  # Permite ejecutar el workflow manualmente desde la interfaz de GitHub Actions
+  workflow_dispatch:
+
+# --- Definición de los Jobs (Trabajos) ---
 jobs:
-  run-tests:
+  run_tests_job:
+    name: Ejecutar Pruebas Automatizadas
+    # Define el sistema operativo del 'runner' (servidor virtual) donde se ejecutará este job
     runs-on: ubuntu-latest
 
-    env:
-      HEADLESS_MODE: "true"  # ← Activado para entorno CI
-
+    # --- Pasos del Job ---
     steps:
-      - name: 🔁 Clonar repositorio
-        uses: actions/checkout@v3
+      # Paso 1: Descarga el código de tu repositorio
+      # Esto es fundamental para que el runner de CI tenga acceso a tus archivos de proyecto.
+      - name: ⬇️ Checkout del Código
+        uses: actions/checkout@v4 # Utiliza la acción oficial de GitHub para clonar repositorios
 
-      - name: 🐍 Configurar Python
-        uses: actions/setup-python@v4
+      # Paso 2: Configura el entorno de Python
+      # Instala la versión de Python especificada en el runner.
+      - name: 🐍 Configurar Entorno Python
+        uses: actions/setup-python@v5 # Utiliza la acción oficial para configurar Python
         with:
-          python-version: '3.11'
+          python-version: '3.x' # Utiliza la última versión compatible de Python 3 (ej. 3.9, 3.10, 3.11)
 
-      - name: 📦 Instalar librerías para Chrome headless
+      # Paso 3: Instalar dependencias del sistema necesarias
+      # Aquí se instalan paquetes a nivel del sistema operativo que Selenium/WebDriver Manager podrían necesitar.
+      # 'curl' es útil para descargar cosas en scripts.
+      - name: ⚙️ Instalar Dependencias del Sistema (apt-get)
         run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            libnss3 libatk1.0-0 libatk-bridge2.0-0 libx11-xcb1 libgtk-3-0 \
-            libxcomposite1 libxdamage1 libxrandr2 libasound2 libxshmfence-dev
+          sudo apt-get update           # Actualiza la lista de paquetes del sistema
+          sudo apt-get install -y curl  # Instala 'curl' sin pedir confirmación
 
-      - name: 📦 Instalar dependencias del proyecto
+      # Paso 4: Instalar las dependencias de Python (librerías)
+      # Este es un paso CRÍTICO para asegurar que tu entorno Python tenga todo lo necesario.
+      - name: 📦 Instalar Dependencias de Python (pip)
         run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
-          pip install -r dev-requirements.txt
+          python -m pip install --upgrade pip       # Asegura que pip esté actualizado
+          pip install --upgrade setuptools          # **SOLUCIÓN AL ERROR `pkg_resources`**
+                                                    # Asegura que 'setuptools' (que contiene 'pkg_resources')
+                                                    # esté instalado y actualizado.
+          pip install -r requirements.txt           # Instala todas las librerías listadas en tu requirements.txt
 
-      - name: 📁 Crear carpeta para reportes
-        run: mkdir -p Resultado_Pruebas
-
-      - name: 🧪 Ejecutar pruebas con Pytest
-        run: |
-          pytest --html=Resultado_Pruebas/report.html || echo "⚠️ Algunas pruebas fallaron"
-
-      - name: ✅ Validar existencia de artefacto
-        run: |
-          if [ -f Resultado_Pruebas/report.html ] && [ $(stat -c%s Resultado_Pruebas/report.html) -gt 1000 ]; then
-            echo "🎉 Reporte generado correctamente ✔️"
-          else
-            echo "⚠️ Reporte no existe o es demasiado pequeño"
-          fi
-
-      - name: 📤 Guardar reporte de pruebas
-        uses: actions/upload-artifact@v4
-        with:
-          name: pytest-report
-          path: Resultado_Pruebas/report.html
+      # Paso 5: Recrear los archivos JSON sensibles desde los Secretos de GitHub
+      # ESTE ES EL CORAZÓN DE LA GESTIÓN SEGURA DE CREDENCIALES EN CI.
+      # Los archivos sensibles NO se suben a
