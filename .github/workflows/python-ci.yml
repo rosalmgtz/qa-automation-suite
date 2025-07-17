@@ -1,57 +1,80 @@
-name: Python CI – QA Suite
+# 📂 .github/workflows/python-ci.yml
+# 🐍 Pipeline CI para pruebas automatizadas de Selenium en ambiente controlado
+
+name: 🐍 Python CI - Suite de Automatización QA
 
 on:
+  # 🚦 Dispara el workflow en eventos de push y pull_request
   push:
-    branches: [main]
+    branches:
+      - main
+      - develop  # Incluye ramas de desarrollo si se usan
   pull_request:
-    branches: [main]
+    branches:
+      - main
+      - develop  # Revisión automática de PRs en ramas clave como desarrollo 
 
 jobs:
-  run-tests:
-    runs-on: ubuntu-latest
+  run_tests_job:
+    name: Ejecutar Pruebas Automatizadas
+    runs-on: ubuntu-latest  # Usa el runner hospedado más reciente de GitHub
 
+    # ⚙️ Variables de entorno para configurar Selenium o acceso a servicios
     env:
-      HEADLESS_MODE: "true"  # ← Activado para entorno CI
+      BROWSER_HEADLESS: true  # Para ejecutar en modo headless sin UI
+      # GOOGLE_API_CREDENTIALS: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_KEY }}
+      # TEST_APP_URL: https://www.ejemplo.com  # URL configurable si aplica
 
     steps:
-      - name: 🔁 Clonar repositorio
-        uses: actions/checkout@v3
+      # 📥 Clona el repositorio en el runner
+      - name: ⬇️ Clonar el repositorio
+        uses: actions/checkout@v4
 
-      - name: 🐍 Configurar Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.11'
-
-      - name: 📦 Instalar librerías para Chrome headless
+      # 🧱 Instala dependencias del sistema necesarias para navegador
+      - name: 🔧 Instalar dependencias del sistema (Ubuntu 24.04)
         run: |
-          sudo apt-get update
+          sudo apt-get update -y
           sudo apt-get install -y \
-            libnss3 libatk1.0-0 libatk-bridge2.0-0 libx11-xcb1 libgtk-3-0 \
-            libxcomposite1 libxdamage1 libxrandr2 libasound2 libxshmfence-dev
+            chromium-browser \            # Navegador base para Selenium
+            libnss3 \                     # Librerías de compatibilidad
+            libxss1 \                     # Requerida por Chromium
+            libasound2t64 \               # Corrección clave para evitar errores
+            xvfb                          # Virtual framebuffer (headless gráfico opcional)
 
-      - name: 📦 Instalar dependencias del proyecto
+      # 🐍 Configura Python en el runner con la versión deseada
+      - name: 🐍 Configurar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'  # Puedes cambiar si el proyecto requiere otra version
+
+      # 📦 Instala dependencias del proyecto desde archivos de requisitos
+      - name: 📦 Instalar dependencias de Python
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt
-          pip install -r dev-requirements.txt
+          pip install --no-cache-dir -r requirements.txt -r dev-requirements.txt
 
-      - name: 📁 Crear carpeta para reportes
-        run: mkdir -p Resultado_Pruebas
-
-      - name: 🧪 Ejecutar pruebas con Pytest
+      # 🔎 Verifica que los paquetes y carpetas necesarias están listos
+      - name: 🔍 Validar entorno (paquetes y estructura)
         run: |
-          pytest --html=Resultado_Pruebas/report.html || echo "⚠️ Algunas pruebas fallaron"
+          python utils/check_env.py  # Script personalizado para QA pre-run
 
-      - name: ✅ Validar existencia de artefacto
+      # 🧪 Ejecuta las pruebas con reporte HTML y cobertura
+      - name: 🧪 Ejecutar pruebas Pytest con HTML y cobertura
         run: |
-          if [ -f Resultado_Pruebas/report.html ] && [ $(stat -c%s Resultado_Pruebas/report.html) -gt 1000 ]; then
-            echo "🎉 Reporte generado correctamente ✔️"
-          else
-            echo "⚠️ Reporte no existe o es demasiado pequeño"
-          fi
+          pytest \
+            --html=reports/report.html \
+            --self-contained-html \
+            --cov=./tests
 
-      - name: 📤 Guardar reporte de pruebas
+      # 📊 Genera reporte de cobertura de código en formato HTML
+      - name: 📊 Generar reporte de cobertura HTML
+        run: |
+          coverage html -d reports/coverage_html  # Genera archivo 'index.html' de cobertura
+
+      # 📤 Publica todos los reportes como artefactos en GitHub Actions
+      - name: 📤 Publicar reportes como artefactos
         uses: actions/upload-artifact@v4
         with:
-          name: pytest-report
-          path: Resultado_Pruebas/report.html
+          name: Reportes-QA-Automatizacion  # Nombre del bundle de reportes
+          path: reports/                    # Incluye HTML, cobertura y otros archivos
+          retention-days: 7                 # Opcional: cuánto tiempo mantenerlos disponibles
