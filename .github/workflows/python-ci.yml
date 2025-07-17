@@ -3,19 +3,25 @@ name: QA Automation Suite CI
 
 # --- Eventos que Disparan el Workflow ---
 on:
-  # Dispara el workflow cuando se hace un push a la rama 'infra/gitignore-y-ci-validado'
-  # ¡IMPORTANTE! Una vez que todo funcione, deberías cambiar esto a tus ramas principales
-  # como 'main' o 'develop' para que la CI se ejecute en los cambios importantes.
+  # Dispara el workflow cuando se hace un push a las ramas especificadas
   push:
     branches:
-      - infra/gitignore-y-ci-validado # Tu rama actual de trabajo
-  
+      - main # La rama principal donde resides tu código estable
+      - develop # Si tienes una rama de desarrollo para nuevas funcionalidades
+      - infra/gitignore-y-ci-validado # Tu rama actual de trabajo si aún no la has eliminado
+    paths-ignore: # Ignora estos archivos/patrones para disparar el workflow en un 'push'
+      - '**.md'   # Ignora todos los archivos Markdown (ej. README.md, CHANGELOG.md)
+      - 'docs/**' # Ignora cualquier cambio en una posible carpeta 'docs/'
+      - 'LICENSE' # Ignora cambios en el archivo de licencia
+
   # Dispara el workflow cuando se abre o actualiza un Pull Request hacia las ramas especificadas
+  # Para Pull Requests, generalmente querrás que el CI se ejecute en todos los cambios
+  # para una validación completa antes de fusionar.
   pull_request:
     branches:
-      - infra/gitignore-y-ci-validado # Si usas PRs en esta rama de desarrollo/infra
-      - main # Para tus Pull Requests hacia la rama principal del proyecto
-      - develop # Si usas una rama de desarrollo para tus PRs
+      - main
+      - develop
+      - infra/gitignore-y-ci-validado
 
   # Permite ejecutar el workflow manualmente desde la interfaz de GitHub Actions
   workflow_dispatch:
@@ -30,35 +36,52 @@ jobs:
     # --- Pasos del Job ---
     steps:
       # Paso 1: Descarga el código de tu repositorio
-      # Esto es fundamental para que el runner de CI tenga acceso a tus archivos de proyecto.
       - name: ⬇️ Checkout del Código
-        uses: actions/checkout@v4 # Utiliza la acción oficial de GitHub para clonar repositorios
+        uses: actions/checkout@v4
 
       # Paso 2: Configura el entorno de Python
-      # Instala la versión de Python especificada en el runner.
       - name: 🐍 Configurar Entorno Python
-        uses: actions/setup-python@v5 # Utiliza la acción oficial para configurar Python
+        uses: actions/setup-python@v5
         with:
-          python-version: '3.x' # Utiliza la última versión compatible de Python 3 (ej. 3.9, 3.10, 3.11)
+          python-version: '3.x'
 
       # Paso 3: Instalar dependencias del sistema necesarias
-      # Aquí se instalan paquetes a nivel del sistema operativo que Selenium/WebDriver Manager podrían necesitar.
-      # 'curl' es útil para descargar cosas en scripts.
       - name: ⚙️ Instalar Dependencias del Sistema (apt-get)
         run: |
-          sudo apt-get update           # Actualiza la lista de paquetes del sistema
-          sudo apt-get install -y curl  # Instala 'curl' sin pedir confirmación
+          sudo apt-get update
+          sudo apt-get install -y curl
 
       # Paso 4: Instalar las dependencias de Python (librerías)
-      # Este es un paso CRÍTICO para asegurar que tu entorno Python tenga todo lo necesario.
       - name: 📦 Instalar Dependencias de Python (pip)
         run: |
-          python -m pip install --upgrade pip       # Asegura que pip esté actualizado
-          pip install --upgrade setuptools          # **SOLUCIÓN AL ERROR `pkg_resources`**
-                                                    # Asegura que 'setuptools' (que contiene 'pkg_resources')
-                                                    # esté instalado y actualizado.
-          pip install -r requirements.txt           # Instala todas las librerías listadas en tu requirements.txt
+          python -m pip install --upgrade pip
+          pip install --upgrade setuptools # Asegura que setuptools esté instalado y actualizado
+          pip install -r requirements.txt
 
       # Paso 5: Recrear los archivos JSON sensibles desde los Secretos de GitHub
-      # ESTE ES EL CORAZÓN DE LA GESTIÓN SEGURA DE CREDENCIALES EN CI.
-      # Los archivos sensibles NO se suben a
+      - name: 🔐 Configurar Credenciales de Google desde Secretos (Solo en CI)
+        env:
+          CLIENT_SECRET_CONTENT: ${{ secrets.GOOGLE_CLIENT_SECRET_JSON }}
+          CREDENTIALS_CONTENT: ${{ secrets.GOOGLE_CREDENTIALS_JSON }}
+          TOKEN_CONTENT: ${{ secrets.GOOGLE_API_TOKEN_JSON }}
+
+        run: |
+          mkdir -p config
+          echo "${CLIENT_SECRET_CONTENT}" > config/client_secret.json
+          echo "${CREDENTIALS_CONTENT}" > config/credentials.json
+          echo "${TOKEN_CONTENT}" > config/token.json
+          echo "Archivos de credenciales sensibles creados temporalmente para la ejecución de CI."
+
+      # Paso 6: Ejecutar el script principal de tu suite de automatización
+      - name: 🚀 Ejecutar Suite de Automatización QA
+        run: |
+          python suite.py
+        env:
+          BROWSER_HEADLESS: true # Establece a 'true' para CI (recomendado)
+
+      # Paso 7: Subir los artefactos (resultados) del workflow
+      - name: ⬆️ Subir Reportes como Artefacto
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-reports
+          path: reports/
