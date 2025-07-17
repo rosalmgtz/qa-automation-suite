@@ -8,22 +8,22 @@ on:
   push:
     branches:
       - main
-      - develop  # Incluye ramas de desarrollo si se usan
+      - develop   # Incluye ramas de desarrollo si se usan
   pull_request:
     branches:
       - main
-      - develop  # Revisión automática de PRs en ramas clave como desarrollo
+      - develop   # Revisión automática de PRs en ramas clave como desarrollo
 
 jobs:
   run_tests_job:
     name: Ejecutar Pruebas Automatizadas
-    runs-on: ubuntu-latest  # Usa el runner hospedado más reciente de GitHub
+    runs-on: ubuntu-latest   # Usa el runner hospedado más reciente de GitHub
 
     # ⚙️ Variables de entorno para configurar Selenium o acceso a servicios
     env:
-      BROWSER_HEADLESS: true  # Para ejecutar en modo headless sin UI
+      BROWSER_HEADLESS: true   # Para ejecutar en modo headless sin UI
       # GOOGLE_API_CREDENTIALS: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_KEY }}
-      # TEST_APP_URL: https://www.ejemplo.com  # URL configurable si aplica
+      # TEST_APP_URL: https://www.ejemplo.com   # URL configurable si aplica
 
     steps:
       # 📥 Clona el repositorio en el runner
@@ -40,7 +40,7 @@ jobs:
       - name: 🐍 Configurar Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'  # Puedes cambiar si el proyecto requiere otra versión
+          python-version: '3.11'   # Puedes cambiar si el proyecto requiere otra versión
 
       # 📦 Instala dependencias del proyecto desde archivos de requisitos
       - name: 📦 Instalar dependencias de Python
@@ -48,10 +48,24 @@ jobs:
           python -m pip install --upgrade pip
           pip install --no-cache-dir -r requirements.txt -r dev-requirements.txt
 
+      # 🔎 PASO DE DEPURACIÓN: Muestra la estructura de archivos en el Runner
+      # Útil para verificar que las carpetas y archivos estén presentes para el workflow.
+      # Elimínalo una vez que hayas confirmado que el problema de las carpetas se resolvió.
+      - name: 🔍 Depurar - Listar estructura de archivos
+        run: |
+          echo "Contenido del directorio actual:"
+          ls -F
+          echo ""
+          echo "Contenido recursivo (primeros niveles):"
+          ls -F -R | head -n 50 # Muestra los primeros 50 elementos recursivamente
+          echo ""
+          echo "Ruta de trabajo actual:"
+          pwd
+
       # 🔎 Verifica que los paquetes y carpetas necesarias están listos
       - name: 🔍 Validar entorno (paquetes y estructura)
         run: |
-          python utils/check_env.py  # Script personalizado para QA pre-run
+          python utils/check_env.py   # Script personalizado para QA pre-run
 
       # 🧪 Ejecuta las pruebas con reporte HTML y cobertura
       - name: 🧪 Ejecutar pruebas Pytest con HTML y cobertura
@@ -61,12 +75,12 @@ jobs:
       # 📊 Genera reporte de cobertura de código en formato HTML
       - name: 📊 Generar reporte de cobertura HTML
         run: |
-          coverage html -d reports/coverage_html  # Genera archivo 'index.html' de cobertura
+          coverage html -d reports/coverage_html   # Genera archivo 'index.html' de cobertura
 
       # 📤 Publica todos los reportes como artefactos en GitHub Actions
       - name: 📤 Publicar reportes como artefactos
         uses: actions/upload-artifact@v4
         with:
-          name: Reportes-QA-Automatizacion  # Nombre del bundle de reportes
-          path: reports/                    # Incluye HTML, cobertura y otros archivos
-          retention-days: 7                 # Opcional: cuánto tiempo mantenerlos disponibles
+          name: Reportes-QA-Automatizacion   # Nombre del bundle de reportes
+          path: reports/                      # Incluye HTML, cobertura y otros archivos
+          retention-days: 7                   # Opcional: cuánto tiempo mantenerlos disponibles
