@@ -1,86 +1,111 @@
-# 📂 .github/workflows/python-ci.yml
-# 🐍 Pipeline CI para pruebas automatizadas de Selenium en ambiente controlado
+# Nombre del workflow, aparecerá en la interfaz de GitHub Actions
+name: QA Automation Suite CI
 
-name: 🐍 Python CI - Suite de Automatización QA
-
+# Define los eventos que dispararán este workflow
 on:
-  # 🚦 Dispara el workflow en eventos de push y pull_request
+  # Dispara el workflow cuando se hace un push a la rama 'infra/gitignore-y-ci-validado'
+  # Puedes cambiar esto a 'main' o 'develop' una vez que la rama esté estable.
   push:
     branches:
-      - main
-      - develop   # Incluye ramas de desarrollo si se usan
+      - infra/gitignore-y-ci-validado
+  # Dispara el workflow cuando se abre o actualiza un Pull Request a las ramas especificadas
   pull_request:
     branches:
-      - main
-      - develop   # Revisión automática de PRs en ramas clave como desarrollo
+      - infra/gitignore-y-ci-validado # Si tienes PRs en esta rama
+      - main # Para tus Pull Requests hacia la rama principal
+      - develop # Si usas una rama de desarrollo
 
+  # Permite ejecutar el workflow manualmente desde la interfaz de GitHub Actions
+  workflow_dispatch:
+
+# Define los 'jobs' (trabajos) que se ejecutarán en este workflow
 jobs:
   run_tests_job:
     name: Ejecutar Pruebas Automatizadas
-    runs-on: ubuntu-latest   # Usa el runner hospedado más reciente de GitHub
+    # Define el sistema operativo en el que se ejecutará este job
+    runs-on: ubuntu-latest
 
-    # ⚙️ Variables de entorno para configurar Selenium o acceso a servicios
-    env:
-      BROWSER_HEADLESS: true   # Para ejecutar en modo headless sin UI
-      # GOOGLE_API_CREDENTIALS: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_KEY }}
-      # TEST_APP_URL: https://www.ejemplo.com   # URL configurable si aplica
-
+    # Pasos que se ejecutarán en este job
     steps:
-      # 📥 Clona el repositorio en el runner
-      - name: ⬇️ Clonar el repositorio
+      # Paso 1: Descarga el código de tu repositorio
+      # Esto es necesario para que el runner de CI tenga acceso a tus archivos.
+      - name: ⬇️ Checkout del Código
         uses: actions/checkout@v4
 
-      # 🧱 Instala dependencias del sistema necesarias para navegador
-      - name: 🔧 Instalar dependencias del sistema (Ubuntu 24.04)
-        run: |
-          sudo apt-get update -y
-          sudo apt-get install -y chromium-browser libnss3 libxss1 libasound2t64 xvfb
-
-      # 🐍 Configura Python en el runner con la versión deseada
-      - name: 🐍 Configurar Python
+      # Paso 2: Configura el entorno de Python
+      # Instala la versión de Python especificada.
+      - name: 🐍 Configurar Entorno Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'   # Puedes cambiar si el proyecto requiere otra versión
+          python-version: '3.x' # Utiliza la última versión compatible de Python 3
 
-      # 📦 Instala dependencias del proyecto desde archivos de requisitos
-      - name: 📦 Instalar dependencias de Python
+      # Paso 3: Instalar dependencias del sistema necesarias para Selenium y navegadores
+      # WebDriver Manager necesita curl para descargar los drivers
+      - name: ⚙️ Instalar Dependencias del Sistema
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y curl
+
+      # Paso 4: Instalar las dependencias de Python (librerías)
+      # Esto asume que tienes un archivo requirements.txt en la raíz de tu proyecto.
+      - name: 📦 Instalar Dependencias de Python
         run: |
           python -m pip install --upgrade pip
-          pip install --no-cache-dir -r requirements.txt -r dev-requirements.txt
+          pip install -r requirements.txt
 
-      # 🔎 PASO DE DEPURACIÓN: Muestra la estructura de archivos en el Runner
-      # Útil para verificar que las carpetas y archivos estén presentes para el workflow.
-      # Elimínalo una vez que hayas confirmado que el problema de las carpetas se resolvió.
-      - name: 🔍 Depurar - Listar estructura de archivos
+      # PASO CRUCIAL: Recrear los archivos JSON sensibles desde los Secretos de GitHub
+      # Estos archivos se crean TEMPORALMENTE en la carpeta 'config/' del ambiente de CI.
+      # No se suben al repositorio. Se destruyen al finalizar el job.
+      - name: 🔐 Configurar Credenciales de Google desde Secretos (Solo en CI)
+        env:
+          # Estas variables de entorno en el workflow usan los NOMBRES DE TUS SECRETOS DE GITHUB
+          # (¡Que ya configuraste en Settings > Secrets and variables > Actions!)
+          CLIENT_SECRET_CONTENT: ${{ secrets.GOOGLE_CLIENT_SECRET_JSON }}
+          CREDENTIALS_CONTENT: ${{ secrets.GOOGLE_CREDENTIALS_JSON }}
+          TOKEN_CONTENT: ${{ secrets.GOOGLE_API_TOKEN_JSON }} # El nombre del secreto para tu token
+
+        run: |
+          # Crea la carpeta 'config' si no existe en el runner de CI
+          mkdir -p config
+          # Escribe el CONTENIDO de los secretos en archivos con los NOMBRES CORTOS esperados por tu código Python
+          echo "${CLIENT_SECRET_CONTENT}" > config/client_secret.json
+          echo "${CREDENTIALS_CONTENT}" > config/credentials.json
+          echo "${TOKEN_CONTENT}" > config/token.json
+          echo "Archivos de credenciales sensibles creados temporalmente para la ejecución de CI."
+
+      # Paso 6: Depuración - Listar la estructura de archivos (Opcional, para verificar)
+      # Puedes eliminar este paso una vez que la CI funcione correctamente.
+      - name: 🔍 Depurar - Listar Estructura de Archivos en 'config/'
         run: |
           echo "Contenido del directorio actual:"
           ls -F
           echo ""
-          echo "Contenido recursivo (primeros niveles):"
-          ls -F -R | head -n 50 # Muestra los primeros 50 elementos recursivamente
+          echo "Contenido de la carpeta config/:"
+          ls -F config/
           echo ""
           echo "Ruta de trabajo actual:"
           pwd
 
-      # 🔎 Verifica que los paquetes y carpetas necesarias están listos
-      - name: 🔍 Validar entorno (paquetes y estructura)
+      # Paso 7: Validar el entorno (usando tu script check_env.py)
+      # Este script verificará si la estructura de carpetas es la esperada.
+      - name: ✅ Validar Entorno y Estructura de Carpetas
         run: |
-          python utils/check_env.py   # Script personalizado para QA pre-run
+          python utils/check_env.py
 
-      # 🧪 Ejecuta las pruebas con reporte HTML y cobertura
-      - name: 🧪 Ejecutar pruebas Pytest con HTML y cobertura
+      # Paso 8: Ejecutar las pruebas Pytest
+      # Asegúrate de que este comando ejecute tu suite de pruebas.
+      # --headless es importante para que el navegador corra sin interfaz gráfica en CI.
+      - name: 🚀 Ejecutar Pruebas Pytest
         run: |
-          pytest --html=reports/report.html --self-contained-html --cov=./tests
+          pytest --html=reports/report.html --self-contained-html # Ajusta el comando según cómo ejecutes tus tests
+        env:
+          BROWSER_HEADLESS: true # Establece esta variable para que Selenium use el modo headless
 
-      # 📊 Genera reporte de cobertura de código en formato HTML
-      - name: 📊 Generar reporte de cobertura HTML
-        run: |
-          coverage html -d reports/coverage_html   # Genera archivo 'index.html' de cobertura
-
-      # 📤 Publica todos los reportes como artefactos en GitHub Actions
-      - name: 📤 Publicar reportes como artefactos
+      # Paso 9: Subir los artefactos (resultados) del workflow
+      # Esto guarda los reportes generados para que puedas descargarlos desde GitHub.
+      - name: ⬆️ Subir Reportes como Artefacto
         uses: actions/upload-artifact@v4
         with:
-          name: Reportes-QA-Automatizacion   # Nombre del bundle de reportes
-          path: reports/                      # Incluye HTML, cobertura y otros archivos
-          retention-days: 7                   # Opcional: cuánto tiempo mantenerlos disponibles
+          name: test-reports # Nombre del artefacto
+          path: reports/      # Ruta de la carpeta que contiene los reportes
+          # Nota: 'reports/' debe estar ignorada en tu .gitignore, pero aquí se sube como artefacto.

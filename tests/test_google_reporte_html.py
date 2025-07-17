@@ -14,7 +14,22 @@ import os
 
 # 🕒 Fecha actual segura
 fecha_actual = datetime.now().strftime("%Y-%m-%d")
-nombre_excel = f"busquedas_google_{fecha_actual}.xlsx"
+
+# --- NUEVOS CAMBIOS AQUI ---
+# Define la ruta de la carpeta reports/ y asegura su existencia
+# os.path.dirname(__file__) es el directorio donde está este script (tests/)
+# '..' sube al directorio raíz del proyecto (scripts-selenium/)
+# 'reports' baja a la carpeta reports/
+reports_dir = os.path.join(os.path.dirname(
+    os.path.abspath(__file__)), '..', 'reports')
+# Asegura que la carpeta reports exista
+os.makedirs(reports_dir, exist_ok=True)
+
+# Nombre del archivo Excel temporal, que se guardará directamente en reports/
+nombre_excel_temporal = os.path.join(
+    reports_dir, f"busquedas_google_SABRINA_{fecha_actual}.xlsx")
+# --- FIN NUEVOS CAMBIOS ---
+
 wb = Workbook()
 ws_resumen = wb.active
 ws_resumen.title = "Resumen"
@@ -54,7 +69,8 @@ def aplicar_estilos(ws):
 
 @pytest.fixture(scope="module")
 def driver():
-    headless = os.getenv("HEADLESS_MODE", "true").lower() == "true"
+    # Usa BROWSER_HEADLESS para coincidir con la variable de entorno del workflow de CI
+    headless = os.getenv("BROWSER_HEADLESS", "true").lower() == "true"
     print(f"🟢 Iniciando navegador stealth (headless={headless})...")
     d = uc.Chrome(headless=headless, use_subprocess=True)
     d.maximize_window()
@@ -134,5 +150,6 @@ def test_busqueda_google(driver, query):
 
 def pytest_sessionfinish(session, exitstatus):
     aplicar_estilos(ws_resumen)
-    wb.save(nombre_excel)
-    print(f"\n✅ Archivo Excel generado: {nombre_excel}")
+    # Guarda el Excel directamente en la ruta de la carpeta reports/
+    wb.save(nombre_excel_temporal)
+    print(f"\n✅ Archivo Excel generado: {nombre_excel_temporal}")
