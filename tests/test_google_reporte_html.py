@@ -207,16 +207,37 @@ def test_busqueda_google(driver, query):
 
     time.sleep(5)  # Un tiempo extra para que la página cargue completamente
 
-    bloques = driver.find_elements(
-        By.CSS_SELECTOR, "div#search .tF2Cxc, div.g")
+    # DEBUG: Imprimir URL actual después de la búsqueda
+    # DEBUG LINE
+    print(f"DEBUG: URL actual después de la búsqueda: {driver.current_url}")
+    # DEBUG: Capturar el HTML de la página de resultados para inspección
+    with open(os.path.join(reports_dir, f"debug_html_results_page_{query[:15]}_{fecha_actual}.html"), "w", encoding="utf-8") as f:
+        f.write(driver.page_source)
+    # DEBUG LINE
+    print(
+        f"DEBUG: HTML de la página de resultados guardado en: {os.path.join(reports_dir, f'debug_html_results_page_{query[:15]}_{fecha_actual}.html')}")
+
+    # Selectores para los bloques de resultados:
+    # Google a menudo cambia los selectores. 'div.g' es un selector más estable para bloques de resultados individuales.
+    # 'div#search .tF2Cxc' es más específico y puede ser inestable.
+    # Vamos a probar con un selector más general para los resultados orgánicos.
+    # CAMBIO CLAVE AQUÍ: Simplificado el selector
+    bloques = driver.find_elements(By.CSS_SELECTOR, "div.g")
 
     # DEBUG LINE
     print(
-        f"DEBUG: Número de bloques de resultados encontrados: {len(bloques)}")
+        f"DEBUG: Número de bloques de resultados encontrados con 'div.g': {len(bloques)}")
     if len(bloques) == 0:
         print(
-            f"⚠️ No se encontraron bloques de resultados estándar para '{query}'. Reintentando con selectores alternativos.")
-        # Podrías añadir aquí otra capa de lógica o reintentos si es necesario
+            f"⚠️ No se encontraron bloques de resultados estándar para '{query}' con 'div.g'. Intentando con selector alternativo 'div.rc'.")
+        # Alternativo, a veces usado por Google
+        bloques = driver.find_elements(By.CSS_SELECTOR, "div.rc")
+        # DEBUG LINE
+        print(
+            f"DEBUG: Número de bloques de resultados encontrados con 'div.rc': {len(bloques)}")
+        if len(bloques) == 0:
+            print(
+                f"⚠️ Aún no se encontraron resultados con 'div.rc'. Considerar inspeccionar el HTML capturado.")
 
     assert len(
         bloques) > 0, f"No se encontraron resultados visibles para '{query}' después de la búsqueda."
@@ -237,7 +258,7 @@ def test_busqueda_google(driver, query):
                 ws.append([titulo, enlace])
                 ws_resumen.append([query, titulo, enlace])
                 count += 1
-            if count >= 5:
+            if count >= 5:  # Limitar a 5 resultados por búsqueda para el reporte
                 break
         except Exception as e:
             # DEBUG LINE
