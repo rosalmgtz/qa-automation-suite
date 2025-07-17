@@ -1,111 +1,64 @@
 # Nombre del workflow, aparecerá en la interfaz de GitHub Actions
 name: QA Automation Suite CI
 
-# Define los eventos que dispararán este workflow
+# --- Eventos que Disparan el Workflow ---
 on:
   # Dispara el workflow cuando se hace un push a la rama 'infra/gitignore-y-ci-validado'
-  # Puedes cambiar esto a 'main' o 'develop' una vez que la rama esté estable.
+  # ¡IMPORTANTE! Una vez que todo funcione, deberías cambiar esto a tus ramas principales
+  # como 'main' o 'develop' para que la CI se ejecute en los cambios importantes.
   push:
     branches:
-      - infra/gitignore-y-ci-validado
-  # Dispara el workflow cuando se abre o actualiza un Pull Request a las ramas especificadas
+      - infra/gitignore-y-ci-validado # Tu rama actual de trabajo
+  
+  # Dispara el workflow cuando se abre o actualiza un Pull Request hacia las ramas especificadas
   pull_request:
     branches:
-      - infra/gitignore-y-ci-validado # Si tienes PRs en esta rama
-      - main # Para tus Pull Requests hacia la rama principal
-      - develop # Si usas una rama de desarrollo
+      - infra/gitignore-y-ci-validado # Si usas PRs en esta rama de desarrollo/infra
+      - main # Para tus Pull Requests hacia la rama principal del proyecto
+      - develop # Si usas una rama de desarrollo para tus PRs
 
   # Permite ejecutar el workflow manualmente desde la interfaz de GitHub Actions
   workflow_dispatch:
 
-# Define los 'jobs' (trabajos) que se ejecutarán en este workflow
+# --- Definición de los Jobs (Trabajos) ---
 jobs:
   run_tests_job:
     name: Ejecutar Pruebas Automatizadas
-    # Define el sistema operativo en el que se ejecutará este job
+    # Define el sistema operativo del 'runner' (servidor virtual) donde se ejecutará este job
     runs-on: ubuntu-latest
 
-    # Pasos que se ejecutarán en este job
+    # --- Pasos del Job ---
     steps:
       # Paso 1: Descarga el código de tu repositorio
-      # Esto es necesario para que el runner de CI tenga acceso a tus archivos.
+      # Esto es fundamental para que el runner de CI tenga acceso a tus archivos de proyecto.
       - name: ⬇️ Checkout del Código
-        uses: actions/checkout@v4
+        uses: actions/checkout@v4 # Utiliza la acción oficial de GitHub para clonar repositorios
 
       # Paso 2: Configura el entorno de Python
-      # Instala la versión de Python especificada.
+      # Instala la versión de Python especificada en el runner.
       - name: 🐍 Configurar Entorno Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v5 # Utiliza la acción oficial para configurar Python
         with:
-          python-version: '3.x' # Utiliza la última versión compatible de Python 3
+          python-version: '3.x' # Utiliza la última versión compatible de Python 3 (ej. 3.9, 3.10, 3.11)
 
-      # Paso 3: Instalar dependencias del sistema necesarias para Selenium y navegadores
-      # WebDriver Manager necesita curl para descargar los drivers
-      - name: ⚙️ Instalar Dependencias del Sistema
+      # Paso 3: Instalar dependencias del sistema necesarias
+      # Aquí se instalan paquetes a nivel del sistema operativo que Selenium/WebDriver Manager podrían necesitar.
+      # 'curl' es útil para descargar cosas en scripts.
+      - name: ⚙️ Instalar Dependencias del Sistema (apt-get)
         run: |
-          sudo apt-get update
-          sudo apt-get install -y curl
+          sudo apt-get update           # Actualiza la lista de paquetes del sistema
+          sudo apt-get install -y curl  # Instala 'curl' sin pedir confirmación
 
       # Paso 4: Instalar las dependencias de Python (librerías)
-      # Esto asume que tienes un archivo requirements.txt en la raíz de tu proyecto.
-      - name: 📦 Instalar Dependencias de Python
+      # Este es un paso CRÍTICO para asegurar que tu entorno Python tenga todo lo necesario.
+      - name: 📦 Instalar Dependencias de Python (pip)
         run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
+          python -m pip install --upgrade pip       # Asegura que pip esté actualizado
+          pip install --upgrade setuptools          # **SOLUCIÓN AL ERROR `pkg_resources`**
+                                                    # Asegura que 'setuptools' (que contiene 'pkg_resources')
+                                                    # esté instalado y actualizado.
+          pip install -r requirements.txt           # Instala todas las librerías listadas en tu requirements.txt
 
-      # PASO CRUCIAL: Recrear los archivos JSON sensibles desde los Secretos de GitHub
-      # Estos archivos se crean TEMPORALMENTE en la carpeta 'config/' del ambiente de CI.
-      # No se suben al repositorio. Se destruyen al finalizar el job.
-      - name: 🔐 Configurar Credenciales de Google desde Secretos (Solo en CI)
-        env:
-          # Estas variables de entorno en el workflow usan los NOMBRES DE TUS SECRETOS DE GITHUB
-          # (¡Que ya configuraste en Settings > Secrets and variables > Actions!)
-          CLIENT_SECRET_CONTENT: ${{ secrets.GOOGLE_CLIENT_SECRET_JSON }}
-          CREDENTIALS_CONTENT: ${{ secrets.GOOGLE_CREDENTIALS_JSON }}
-          TOKEN_CONTENT: ${{ secrets.GOOGLE_API_TOKEN_JSON }} # El nombre del secreto para tu token
-
-        run: |
-          # Crea la carpeta 'config' si no existe en el runner de CI
-          mkdir -p config
-          # Escribe el CONTENIDO de los secretos en archivos con los NOMBRES CORTOS esperados por tu código Python
-          echo "${CLIENT_SECRET_CONTENT}" > config/client_secret.json
-          echo "${CREDENTIALS_CONTENT}" > config/credentials.json
-          echo "${TOKEN_CONTENT}" > config/token.json
-          echo "Archivos de credenciales sensibles creados temporalmente para la ejecución de CI."
-
-      # Paso 6: Depuración - Listar la estructura de archivos (Opcional, para verificar)
-      # Puedes eliminar este paso una vez que la CI funcione correctamente.
-      - name: 🔍 Depurar - Listar Estructura de Archivos en 'config/'
-        run: |
-          echo "Contenido del directorio actual:"
-          ls -F
-          echo ""
-          echo "Contenido de la carpeta config/:"
-          ls -F config/
-          echo ""
-          echo "Ruta de trabajo actual:"
-          pwd
-
-      # Paso 7: Validar el entorno (usando tu script check_env.py)
-      # Este script verificará si la estructura de carpetas es la esperada.
-      - name: ✅ Validar Entorno y Estructura de Carpetas
-        run: |
-          python utils/check_env.py
-
-      # Paso 8: Ejecutar las pruebas Pytest
-      # Asegúrate de que este comando ejecute tu suite de pruebas.
-      # --headless es importante para que el navegador corra sin interfaz gráfica en CI.
-      - name: 🚀 Ejecutar Pruebas Pytest
-        run: |
-          pytest --html=reports/report.html --self-contained-html # Ajusta el comando según cómo ejecutes tus tests
-        env:
-          BROWSER_HEADLESS: true # Establece esta variable para que Selenium use el modo headless
-
-      # Paso 9: Subir los artefactos (resultados) del workflow
-      # Esto guarda los reportes generados para que puedas descargarlos desde GitHub.
-      - name: ⬆️ Subir Reportes como Artefacto
-        uses: actions/upload-artifact@v4
-        with:
-          name: test-reports # Nombre del artefacto
-          path: reports/      # Ruta de la carpeta que contiene los reportes
-          # Nota: 'reports/' debe estar ignorada en tu .gitignore, pero aquí se sube como artefacto.
+      # Paso 5: Recrear los archivos JSON sensibles desde los Secretos de GitHub
+      # ESTE ES EL CORAZÓN DE LA GESTIÓN SEGURA DE CREDENCIALES EN CI.
+      # Los archivos sensibles NO se suben a
