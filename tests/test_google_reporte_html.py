@@ -177,14 +177,42 @@ def test_busqueda_google(driver, query):
     caja.send_keys(Keys.RETURN)
 
     # Aumentar tiempo de espera para los resultados de búsqueda
-    WebDriverWait(driver, 20).until(  # Aumentado a 20 segundos
-        EC.presence_of_element_located((By.ID, "search"))
-    )
+    # A veces el ID "search" no es el más robusto, podríamos usar un selector CSS más general
+    # o esperar a que un elemento de resultado específico aparezca.
+    try:
+        WebDriverWait(driver, 20).until(  # Aumentado a 20 segundos
+            EC.presence_of_element_located((By.ID, "search"))
+        )
+        print("DEBUG: Elemento 'search' encontrado.")  # DEBUG LINE
+    except Exception as e:
+        # DEBUG LINE
+        print(
+            f"DEBUG: Falló la espera por ID 'search': {e}. Capturando HTML para depuración.")
+        # Capturar el HTML de la página para depuración
+        with open(os.path.join(reports_dir, f"debug_html_search_fail_{query[:15]}_{fecha_actual}.html"), "w", encoding="utf-8") as f:
+            f.write(driver.page_source)
+        # Intentar esperar por un selector alternativo si el ID "search" falla
+        try:
+            WebDriverWait(driver, 10).until(
+                # 'rso' es el contenedor principal de resultados
+                EC.presence_of_element_located((By.CSS_SELECTOR, "div#rso"))
+            )
+            print("DEBUG: Elemento 'rso' (alternativo) encontrado.")  # DEBUG LINE
+        except Exception as e_alt:
+            # DEBUG LINE
+            print(f"DEBUG: Falló la espera por 'rso' también: {e_alt}.")
+            # Si ambos fallan, re-raise el error para que la prueba falle.
+            # Re-lanza el error para que la prueba falle si no encuentra nada.
+            raise e_alt
+
     time.sleep(5)  # Un tiempo extra para que la página cargue completamente
 
     bloques = driver.find_elements(
         By.CSS_SELECTOR, "div#search .tF2Cxc, div.g")
 
+    # DEBUG LINE
+    print(
+        f"DEBUG: Número de bloques de resultados encontrados: {len(bloques)}")
     if len(bloques) == 0:
         print(
             f"⚠️ No se encontraron bloques de resultados estándar para '{query}'. Reintentando con selectores alternativos.")
@@ -212,7 +240,8 @@ def test_busqueda_google(driver, query):
             if count >= 5:
                 break
         except Exception as e:
-            # print(f"🚫 Error al procesar bloque de resultado: {e}")
+            # DEBUG LINE
+            print(f"DEBUG: Error al procesar bloque de resultado: {e}")
             continue
 
     aplicar_estilos(ws)
@@ -221,11 +250,17 @@ def test_busqueda_google(driver, query):
 
 # 🧾 Guardar Excel al final de todas las pruebas (Hook de Pytest)
 def pytest_sessionfinish(session, exitstatus):
+    print("DEBUG: pytest_sessionfinish iniciado.")  # DEBUG LINE
     # Remueve la hoja "Sheet" por defecto si está vacía
     if "Sheet" in wb.sheetnames and wb["Sheet"].max_row == 0:
         del wb["Sheet"]
 
     aplicar_estilos(ws_resumen)
 
-    wb.save(nombre_excel_final)
-    print(f"\n✅ Archivo Excel generado: {nombre_excel_final}")
+    try:
+        wb.save(nombre_excel_final)
+        print(f"\n✅ Archivo Excel generado: {nombre_excel_final}")
+    except Exception as e:
+        # DEBUG LINE
+        print(
+            f"❌ ERROR: Falló al guardar el archivo Excel '{nombre_excel_final}': {e}")
