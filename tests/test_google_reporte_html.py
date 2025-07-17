@@ -133,17 +133,17 @@ def driver():
 # 📘 Personalizar metadata del reporte HTML de Pytest
 def pytest_configure(config):
     # Asegúrate que sea el nombre deseado
-    config._metadata["Autor"] = "SABRINA"
+    config._metadata["Autor"] = "Rosalba"
     config._metadata["Proyecto"] = "Scraping con Selenium"
     config._metadata["Fecha"] = fecha_actual
-    config._metadata["Ubicación"] = "Buenavista, México"
+    config._metadata["Ubicación"] = "Estado de México"
 
 
 # 🧪 Test por cada término de búsqueda (Parametrizado con Pytest)
 @pytest.mark.parametrize("query", busquedas)
 def test_busqueda_google(driver, query):
     print(f"\n🔎 Buscando: {query}")
-    driver.get("https://www.google.com")
+    driver.get("https://www.duckduckgo.com")
 
     # Aumentar tiempo de espera para el campo de búsqueda
     WebDriverWait(driver, 20).until(  # Aumentado a 20 segundos
