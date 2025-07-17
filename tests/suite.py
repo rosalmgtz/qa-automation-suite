@@ -16,25 +16,30 @@ from google.oauth2.credentials import Credentials
 # Esto permite que el código sea flexible para encontrar archivos en CI o localmente
 def get_credentials_path(filename):
     # Ruta relativa para el entorno de CI (donde GitHub Actions los recrea en 'config/')
-    # __file__ es el path del script actual, os.path.dirname(__file__) es su directorio
-    # '..' sube un nivel al directorio raíz del proyecto (scripts-selenium/)
-    # 'config' baja al directorio config/
+    # Como suite.py está en 'tests/', para llegar a 'config/' (en la raíz), necesitamos '../config/'
     ci_path = os.path.join(os.path.dirname(
-        os.path.abspath(__file__)), 'config', filename)
+        os.path.abspath(__file__)), '..', 'config', filename)
+
+    # DEBUG LINE
+    print(f"DEBUG: get_credentials_path - Calculando ci_path: {ci_path}")
+
     if os.path.exists(ci_path):
         print(f"✅ Encontrado '{filename}' en la ruta CI: {ci_path}")
         return ci_path
 
     # Ruta para el entorno de desarrollo local (donde los guardaste de forma segura)
-    # os.path.expanduser("~") obtiene el directorio base del usuario (ej. C:\Users\ssabr)
     local_secure_path = os.path.join(os.path.expanduser(
         "~"), "MisCredencialesSecretasQA", filename)
+
+    # DEBUG LINE
+    print(
+        f"DEBUG: get_credentials_path - Calculando local_secure_path: {local_secure_path}")
+
     if os.path.exists(local_secure_path):
         print(
             f"✅ Encontrado '{filename}' en la ruta local segura: {local_secure_path}")
         return local_secure_path
 
-    # Si no se encuentra en ninguna de las ubicaciones esperadas
     raise FileNotFoundError(
         f"❌ No se encontró el archivo de credenciales '{filename}' en 'config/' "
         f"(para CI) ni en 'MisCredencialesSecretasQA/' (para local)."
@@ -42,11 +47,8 @@ def get_credentials_path(filename):
 
 
 def asegurar_dependencias():
-    # Asegura que las dependencias estén instaladas.
-    # Estas deberían estar en requirements.txt para la CI.
     for pkg in ["pytest", "pytest-html", "google-api-python-client", "google-auth-oauthlib", "openpyxl"]:
         try:
-            # Asegurarse de que el nombre del módulo sea el correcto para importación
             if pkg == "pytest-html":
                 __import__("pytest_html")
             elif pkg == "google-api-python-client":
@@ -66,7 +68,6 @@ def conectar_google_drive():
     SCOPES = ["https://www.googleapis.com/auth/drive.file"]
     creds = None
 
-    # Primero intenta obtener la ruta del token.json
     try:
         token_path = get_credentials_path("token.json")
         if os.path.exists(token_path):
@@ -74,7 +75,6 @@ def conectar_google_drive():
     except FileNotFoundError:
         print("⚠️ token.json no encontrado. Se intentará generar uno nuevo.")
 
-    # Si las credenciales no son válidas, expiran o no existen
     if not creds or not creds.valid:
         if creds and creds.expired and creds.refresh_token:
             print("🔄 Token expirado, intentando refrescar...")
@@ -82,7 +82,6 @@ def conectar_google_drive():
         else:
             print(
                 "🆕 No se encontró un token válido o está expirado/inválido. Iniciando flujo OAuth.")
-            # Obtiene la ruta de credentials.json
             try:
                 client_secrets_path = get_credentials_path(
                     "client_secret.json")
@@ -91,19 +90,16 @@ def conectar_google_drive():
                 creds = flow.run_local_server(port=0)
             except FileNotFoundError:
                 print("❌ ERROR: No se pudo encontrar 'client_secret.json'. Asegúrate de que esté en 'config/' (CI) o en 'MisCredencialesSecretasQA/' (local).")
-                sys.exit(1)  # Salir si no se pueden obtener las credenciales
+                sys.exit(1)
 
-        # Guarda el nuevo token (o refrescado) en la ubicación donde se encontró el token original (o se espera en CI)
-        # Esto es importante para que en CI se escriba en config/token.json
-        # y localmente en C:\Users\ssabr\MisCredencialesSecretasQA\token.json
         try:
-            # Si el token_path fue encontrado previamente, úsalo.
-            # Si no, asumimos que estamos en CI y lo escribimos en config/
-            final_token_path = token_path if 'token_path' in locals() and os.path.exists(
-                token_path) else os.path.join(os.path.dirname(os.path.abspath(__file__)), 'config', "token.json")
+            if 'token_path' in locals() and token_path and os.path.exists(token_path):
+                final_token_path = token_path
+            else:
+                final_token_path = os.path.join(os.path.dirname(
+                    os.path.abspath(__file__)), '..', 'config', "token.json")
 
-            # Si estamos en local y el token se generó por primera vez, asegurar que se guarde en la carpeta segura
-            if not os.path.exists(final_token_path) and not os.path.exists(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'config', "token.json")):
+            if not os.path.exists(final_token_path) and not os.path.exists(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'config', "token.json")):
                 final_token_path = os.path.join(os.path.expanduser(
                     "~"), "MisCredencialesSecretasQA", "token.json")
 
@@ -112,7 +108,6 @@ def conectar_google_drive():
             print(f"💾 Token guardado/actualizado en: {final_token_path}")
         except Exception as e:
             print(f"❌ Error al guardar/actualizar token.json: {e}")
-            # No es un error crítico si la conexión se logró, pero se alerta.
 
     print("✅ Conexión a Google Drive establecida.")
     return build("drive", "v3", credentials=creds)
@@ -126,7 +121,6 @@ def obtener_id_carpeta_drive(nombre_carpeta, service):
             f"📁 Carpeta '{nombre_carpeta}' encontrada (ID: {resultado['files'][0]['id']})")
         return resultado["files"][0]["id"]
 
-    # Si la carpeta no existe, la crea
     print(f"🆕 Carpeta '{nombre_carpeta}' no encontrada. Creando...")
     metadata = {"name": nombre_carpeta,
                 "mimeType": "application/vnd.google-apps.folder"}
@@ -140,9 +134,7 @@ def subir_a_drive(ruta, folder_id, service):
         print(f"❌ Archivo no encontrado, se omite subida: {ruta}")
         return
 
-    # Intenta determinar el MIME type automáticamente, si es posible
     from mimetypes import guess_type
-    # Por defecto si no puede adivinar
     mime_type = guess_type(ruta)[0] or 'application/octet-stream'
 
     print(f"📤 Subiendo: {os.path.basename(ruta)} con MIME type: {mime_type}")
@@ -158,9 +150,7 @@ def subir_a_drive(ruta, folder_id, service):
 
 
 def actualizar_resumen_excel():
-    # Este archivo se genera localmente en el proyecto
     nombre_json = "resumen_busquedas.json"
-    # Este archivo también se genera localmente
     nombre_excel_local_resumen = "resumen_QA.xlsx"
 
     if not os.path.exists(nombre_json):
@@ -178,11 +168,7 @@ def actualizar_resumen_excel():
     resultados = resumen.get("resultados", {})
     terminos = ", ".join(resultados.keys()) if resultados else "(sin datos)"
 
-    # Rutas para los archivos de resultados que AHORA se generan directamente en reports/
-    # Asume que pytest lo guarda en reports/
-    # Desde 'tests/', 'reports/' está en '../reports/'
     ruta_html = os.path.join("..", "reports", f"reporte_SABRINA_{fecha}.html")
-    # El Excel ahora también se genera directamente en reports/
     ruta_excel_test_results = os.path.join(
         "..", "reports", f"busquedas_google_SABRINA_{fecha}.xlsx")
 
@@ -190,9 +176,6 @@ def actualizar_resumen_excel():
     estado_excel = "✅" if os.path.exists(ruta_excel_test_results) else "❌"
     estado_final = "Completado" if estado_html == "✅" and estado_excel == "✅" else "Parcial"
 
-    # Cargamos o creamos el resumen_QA.xlsx que es global al proyecto
-    # Este archivo debería estar en la raíz del repositorio, no en 'tests/'
-    # Así que la ruta debe subir un nivel desde 'tests/'
     ruta_resumen_qa_excel = os.path.join(os.path.dirname(
         os.path.abspath(__file__)), '..', nombre_excel_local_resumen)
 
@@ -223,25 +206,17 @@ def actualizar_resumen_excel():
 
 def ejecutar_suite():
     fecha = datetime.now().strftime("%Y-%m-%d")
-    # Eliminado: Creación de carpeta 'resultados_fecha' aquí.
-    # Ahora los reportes se guardan directamente en 'reports/' por test_google_reporte_html.py
 
-    # Las rutas para el HTML y Excel ahora apuntan directamente a la carpeta 'reports/'
-    # que está un nivel arriba de 'tests/'
     ruta_html_destino = os.path.join(
         "..", "reports", f"reporte_SABRINA_{fecha}.html")
     ruta_excel_destino = os.path.join(
         "..", "reports", f"busquedas_google_SABRINA_{fecha}.xlsx")
 
-    # Asegurarse de que la carpeta 'reports' exista antes de que pytest intente guardar
-    # Esta ruta es relativa al directorio donde se ejecuta suite.py (que es 'tests/')
     reports_dir = os.path.join(os.path.dirname(
         os.path.abspath(__file__)), '..', 'reports')
     os.makedirs(reports_dir, exist_ok=True)
 
     print("🚀 Ejecutando pruebas...")
-    # El comando pytest se ejecuta desde el working-directory: tests/
-    # y test_google_reporte_html.py guarda en 'reports/' (que es ../reports/ desde tests/)
     subprocess.run([
         sys.executable, "-m", "pytest",
         "test_google_reporte_html.py",  # Nombre del script de prueba
@@ -250,24 +225,18 @@ def ejecutar_suite():
         "-s"  # Para ver la salida de print en los tests
     ])
 
-    # Eliminado: Lógica de shutil.move para el Excel.
-    # Ahora test_google_reporte_html.py guarda el Excel directamente en reports/
     if os.path.exists(ruta_excel_destino):
         print(
             f"📊 Excel de resultados de prueba guardado en: {ruta_excel_destino}")
     else:
         print("⚠️ No se generó el Excel con resultados de prueba en la carpeta 'reports/'. Revisa tu script de prueba.")
 
-    # Conectar a Google Drive usando la lógica de búsqueda de rutas
     service = conectar_google_drive()
-    # Obtener ID de la carpeta principal en Google Drive
     folder_id = obtener_id_carpeta_drive("SABRINA_QA_Reports", service)
 
-    # Subir los reportes generados a Google Drive
     subir_a_drive(ruta_html_destino, folder_id, service)
     subir_a_drive(ruta_excel_destino, folder_id, service)
 
-    # Actualizar el resumen general en Excel
     actualizar_resumen_excel()
 
 
