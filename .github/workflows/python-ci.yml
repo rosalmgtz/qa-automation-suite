@@ -12,7 +12,7 @@ on:
   pull_request:
     branches:
       - main
-      - develop  # Revisión automática de PRs en ramas clave como desarrollo 
+      - develop  # Revisión automática de PRs en ramas clave como desarrollo
 
 jobs:
   run_tests_job:
@@ -34,18 +34,13 @@ jobs:
       - name: 🔧 Instalar dependencias del sistema (Ubuntu 24.04)
         run: |
           sudo apt-get update -y
-          sudo apt-get install -y \
-            chromium-browser \            # Navegador base para Selenium
-            libnss3 \                     # Librerías de compatibilidad
-            libxss1 \                     # Requerida por Chromium
-            libasound2t64 \               # Corrección clave para evitar errores
-            xvfb                          # Virtual framebuffer (headless gráfico opcional)
+          sudo apt-get install -y chromium-browser libnss3 libxss1 libasound2t64 xvfb
 
       # 🐍 Configura Python en el runner con la versión deseada
       - name: 🐍 Configurar Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'  # Puedes cambiar si el proyecto requiere otra version
+          python-version: '3.11'  # Puedes cambiar si el proyecto requiere otra versión
 
       # 📦 Instala dependencias del proyecto desde archivos de requisitos
       - name: 📦 Instalar dependencias de Python
@@ -61,10 +56,7 @@ jobs:
       # 🧪 Ejecuta las pruebas con reporte HTML y cobertura
       - name: 🧪 Ejecutar pruebas Pytest con HTML y cobertura
         run: |
-          pytest \
-            --html=reports/report.html \
-            --self-contained-html \
-            --cov=./tests
+          pytest --html=reports/report.html --self-contained-html --cov=./tests
 
       # 📊 Genera reporte de cobertura de código en formato HTML
       - name: 📊 Generar reporte de cobertura HTML
