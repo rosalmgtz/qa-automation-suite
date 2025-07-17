@@ -1,15 +1,18 @@
-from google.oauth2.credentials import Credentials
-from google_auth_oauthlib.flow import InstalledAppFlow
-from google.auth.transport.requests import Request
-from googleapapi.http import MediaFileUpload
-from googleapiclient.discovery import build
-from datetime import datetime
-import openpyxl
-import json
-import shutil
-import os
+import subprocess
 import sys
-iimport subprocess
+import os
+import shutil
+import json
+import openpyxl
+from datetime import datetime
+from googleapiclient.discovery import build
+# Corregido: 'googleapapi.http' a 'googleapiclient.http'
+from googleapiclient.http import MediaFileUpload
+from google.auth.transport.requests import Request
+from google_auth_oauthlib.flow import InstalledAppFlow
+from google.oauth2.credentials import Credentials
+# Corregido: 'iimport subprocess' a 'import subprocess'
+# import subprocess # Esta línea estaba duplicada y mal escrita al inicio
 
 
 # Función auxiliar para construir la ruta a un archivo de credenciales
@@ -174,22 +177,28 @@ def actualizar_resumen_excel():
 
     fecha = resumen.get("fecha", "desconocida")
     resultados = resumen.get("resultados", {})
-    total_busquedas = sum(resultados.values())
-    terminos = ", ".join(results.keys()) if results else "(sin datos)"
+    # Corregido: 'results.keys()' a 'resultados.keys()'
+    terminos = ", ".join(resultados.keys()) if resultados else "(sin datos)"
 
-    # Rutas relativas a la carpeta donde se ejecuta Pytest y guarda los resultados
-    # Asumiendo que pytest lo guarda en reports/
-    ruta_html = f"reports/reporte_SABRINA_{fecha}.html"
-    # Asumiendo que se mueve aquí
-    ruta_excel_test_results = f"reports/busquedas_google_SABRINA_{fecha}.xlsx"
+    # Rutas para los archivos de resultados que AHORA se generan directamente en reports/
+    # Asume que pytest lo guarda en reports/
+    ruta_html = os.path.join("..", "reports", f"reporte_SABRINA_{fecha}.html")
+    # El Excel ahora también se genera directamente en reports/
+    ruta_excel_test_results = os.path.join(
+        "..", "reports", f"busquedas_google_SABRINA_{fecha}.xlsx")
 
     estado_html = "✅" if os.path.exists(ruta_html) else "❌"
     estado_excel = "✅" if os.path.exists(ruta_excel_test_results) else "❌"
     estado_final = "Completado" if estado_html == "✅" and estado_excel == "✅" else "Parcial"
 
     # Cargamos o creamos el resumen_QA.xlsx que es global al proyecto
-    if os.path.exists(nombre_excel_local_resumen):
-        wb = openpyxl.load_workbook(nombre_excel_local_resumen)
+    # Este archivo debería estar en la raíz del repositorio, no en 'tests/'
+    # Así que la ruta debe subir un nivel desde 'tests/'
+    ruta_resumen_qa_excel = os.path.join(os.path.dirname(
+        os.path.abspath(__file__)), '..', nombre_excel_local_resumen)
+
+    if os.path.exists(ruta_resumen_qa_excel):
+        wb = openpyxl.load_workbook(ruta_resumen_qa_excel)
         ws = wb.active
     else:
         wb = openpyxl.Workbook()
@@ -202,7 +211,7 @@ def actualizar_resumen_excel():
     nueva_fila = [fecha, total_busquedas, terminos,
                   estado_html, estado_excel, estado_final]
     ws.append(nueva_fila)
-    wb.save(nombre_excel_local_resumen)
+    wb.save(ruta_resumen_qa_excel)
 
     print("\n📈 Resumen QA actualizado en 'resumen_QA.xlsx'")
     print("🗓️ Fecha:", fecha)
@@ -215,38 +224,39 @@ def actualizar_resumen_excel():
 
 def ejecutar_suite():
     fecha = datetime.now().strftime("%Y-%m-%d")
-    # La carpeta resultados_YYYY-MM-DD se crea dentro de la raíz del proyecto para los resultados temporales
-    carpeta_local_resultados = f"resultados_{fecha}"
-    os.makedirs(carpeta_local_resultados, exist_ok=True)
+    # Eliminado: Creación de carpeta 'resultados_fecha' aquí.
+    # Ahora los reportes se guardan directamente en 'reports/' por test_google_reporte_html.py
 
-    nombre_html = f"reporte_SABRINA_{fecha}.html"
-    nombre_excel = f"busquedas_google_SABRINA_{fecha}.xlsx"
-    ruta_html_destino = os.path.join(carpeta_local_resultados, nombre_html)
-    ruta_excel_destino = os.path.join(carpeta_local_resultados, nombre_excel)
+    # Las rutas para el HTML y Excel ahora apuntan directamente a la carpeta 'reports/'
+    # que está un nivel arriba de 'tests/'
+    ruta_html_destino = os.path.join(
+        "..", "reports", f"reporte_SABRINA_{fecha}.html")
+    ruta_excel_destino = os.path.join(
+        "..", "reports", f"busquedas_google_SABRINA_{fecha}.xlsx")
+
+    # Asegurarse de que la carpeta 'reports' exista antes de que pytest intente guardar
+    reports_dir = os.path.join(os.path.dirname(
+        os.path.abspath(__file__)), '..', 'reports')
+    os.makedirs(reports_dir, exist_ok=True)
 
     print("🚀 Ejecutando pruebas...")
-    # Ejecuta pytest. Nota: si tu test_google_reporte_hml.py guarda el Excel directamente
-    # en la raíz o en otra parte, asegúrate de que shutil.move lo encuentre.
+    # El comando pytest se ejecuta desde el working-directory: tests/
+    # y test_google_reporte_html.py guarda en 'reports/' (que es ../reports/ desde tests/)
     subprocess.run([
         sys.executable, "-m", "pytest",
-        "test_google_reporte_hml.py",  # Asume que este es el script de prueba principal
+        "test_google_reporte_html.py",  # Nombre del script de prueba
         "--html", ruta_html_destino,  # Pytest guarda el HTML aquí
         "--self-contained-html",
         "-s"  # Para ver la salida de print en los tests
     ])
 
-    # El archivo Excel puede ser generado por el test_google_reporte_hml.py
-    # Si lo genera en la misma carpeta de ejecución, lo moveremos a la carpeta de resultados
-    # Asegúrate de que el nombre del excel aquí coincida con el que genera tu test
-    # <-- Revisa si tu test genera este nombre
-    generated_excel_name = "busquedas_google.xlsx"
-    if os.path.exists(generated_excel_name):
-        shutil.move(generated_excel_name, ruta_excel_destino)
+    # Eliminado: Lógica de shutil.move para el Excel.
+    # Ahora test_google_reporte_html.py guarda el Excel directamente en reports/
+    if os.path.exists(ruta_excel_destino):
         print(
             f"📊 Excel de resultados de prueba guardado en: {ruta_excel_destino}")
     else:
-        print(
-            "⚠️ No se generó el Excel con resultados de prueba. Revisa tu script de prueba.")
+        print("⚠️ No se generó el Excel con resultados de prueba en la carpeta 'reports/'. Revisa tu script de prueba.")
 
     # Conectar a Google Drive usando la lógica de búsqueda de rutas
     service = conectar_google_drive()
@@ -255,7 +265,6 @@ def ejecutar_suite():
 
     # Subir los reportes generados a Google Drive
     subir_a_drive(ruta_html_destino, folder_id, service)
-    # Sube el excel de los tests
     subir_a_drive(ruta_excel_destino, folder_id, service)
 
     # Actualizar el resumen general en Excel
