@@ -33,3 +33,13 @@ client_secret_*.json
 
 # 🛠️ Configuración local de VSCode (opcional)
 .vscode/
+
+# 📂 Permitir marcadores .keep en carpetas excluidas
+!.github/.keep
+!reports/.keep
+!drivers/.keep
+!docs/.keep
+!tests/.keep
+!pages/.keep
+!utils/.keep
+!config/.keep
