@@ -6,9 +6,9 @@ on:
   # Dispara el workflow cuando se hace un push a las ramas especificadas
   push:
     branches:
-      - main # La rama principal donde resides tu código estable
-      - develop # Si tienes una rama de desarrollo para nuevas funcionalidades
-      - infra/gitignore-y-ci-validado # Tu rama actual de trabajo si aún no la has eliminado
+      - main # La rama principal donde reside tu código estable
+      - develop # Si usas una rama de desarrollo para nuevas funcionalidades
+      # - infra/gitignore-y-ci-validado # Si ya la fusionaste a main, puedes removerla de aquí para limpiar
     paths-ignore: # Ignora estos archivos/patrones para disparar el workflow en un 'push'
       - '**.md'   # Ignora todos los archivos Markdown (ej. README.md, CHANGELOG.md)
       - 'docs/**' # Ignora cualquier cambio en una posible carpeta 'docs/'
@@ -21,7 +21,7 @@ on:
     branches:
       - main
       - develop
-      - infra/gitignore-y-ci-validado
+      # - infra/gitignore-y-ci-validado # Si ya la fusionaste a main, puedes removerla de aquí para limpiar
 
   # Permite ejecutar el workflow manualmente desde la interfaz de GitHub Actions
   workflow_dispatch:
@@ -43,9 +43,10 @@ jobs:
       - name: 🐍 Configurar Entorno Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.x'
+          python-version: '3.x' # Puedes especificar una versión exacta como '3.10' o '3.11'
 
       # Paso 3: Instalar dependencias del sistema necesarias
+      # (Ejemplo: curl es útil para algunos setups, si no se usa, puede removerse)
       - name: ⚙️ Instalar Dependencias del Sistema (apt-get)
         run: |
           sudo apt-get update
@@ -73,13 +74,19 @@ jobs:
           echo "Archivos de credenciales sensibles creados temporalmente para la ejecución de CI."
 
       # Paso 6: Ejecutar el script principal de tu suite de automatización
+      # IMPORTANTE: El 'working-directory' ahora apunta a 'tests/'
       - name: 🚀 Ejecutar Suite de Automatización QA
+        working-directory: tests/ # ¡Este es el cambio crucial!
         run: |
           python suite.py
         env:
           BROWSER_HEADLESS: true # Establece a 'true' para CI (recomendado)
 
       # Paso 7: Subir los artefactos (resultados) del workflow
+      # IMPORTANTE: Asegúrate de que la carpeta 'reports/' se cree en la raíz del repositorio
+      # o ajusta esta ruta si se crea dentro de 'tests/'. Si `suite.py` crea 'reports/'
+      # dentro de 'tests/', entonces la ruta aquí debería ser 'tests/reports/'.
+      # Dado que tu estructura original tiene 'reports/' en la raíz, mantendremos eso.
       - name: ⬆️ Subir Reportes como Artefacto
         uses: actions/upload-artifact@v4
         with:
